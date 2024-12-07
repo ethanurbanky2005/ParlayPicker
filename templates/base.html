@@ -1,0 +1,77 @@
+<!-- templates/base.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CFB Advanced Parlay Tool</title>
+  <!-- Tailwind CSS -->
+  <link href="{{ url_for('static', filename='css/output.css') }}" rel="stylesheet">
+  <style>
+    .flash {
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+    }
+    .flash.success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .flash.error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    .flash.info {
+      background-color: #d1ecf1;
+      color: #0c5460;
+    }
+    .flash.warning {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+<nav class="bg-white p-4 shadow">
+  <div class="max-w-7xl mx-auto flex justify-between items-center">
+    <div class="flex items-center space-x-2">
+      <div class="w-8 h-8 bg-blue-600 rounded-full"></div>
+      <span class="text-xl font-bold text-gray-800">CFB Parlay Master</span>
+    </div>
+    <div class="flex space-x-4">
+      <a href="{{ url_for('index') }}" class="text-gray-700 hover:text-blue-600">Home</a>
+      <a href="{{ url_for('games') }}" class="text-gray-700 hover:text-blue-600">Games</a>
+      <a href="{{ url_for('futures') }}" class="text-gray-700 hover:text-blue-600">Futures</a>
+      <a href="{{ url_for('live_updates') }}" class="text-gray-700 hover:text-blue-600">Live Updates</a>
+      <a href="{{ url_for('injuries') }}" class="text-gray-700 hover:text-blue-600">Injuries</a>
+      <a href="{{ url_for('past_bets') }}" class="text-gray-700 hover:text-blue-600">Past Bets</a>
+      {% if current_user.is_authenticated %}
+      <a href="{{ url_for('dashboard') }}" class="text-gray-700 hover:text-blue-600">Dashboard</a>
+      <a href="{{ url_for('logout') }}" class="text-gray-700 hover:text-blue-600">Logout</a>
+      {% else %}
+      <a href="{{ url_for('login') }}" class="text-gray-700 hover:text-blue-600">Login</a>
+      <a href="{{ url_for('register') }}" class="text-gray-700 hover:text-blue-600">Register</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
+<main class="flex-1 p-4">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="max-w-4xl mx-auto">
+    {% for category, message in messages %}
+    <div class="mb-4 p-4 rounded {{ 'bg-red-100 text-red-700' if category == 'error' else 'bg-green-100 text-green-700' }} border-l-4 border-gray-300">
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+<footer class="text-center p-4 text-sm text-gray-500 border-t">
+  &copy; {{ now.strftime("%Y") }} CFB Analytics Pro
+</footer>
+</body>
+</html>

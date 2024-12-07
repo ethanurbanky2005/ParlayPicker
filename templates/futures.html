@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-5xl mx-auto p-6 bg-white shadow rounded mt-10">
+  <h2 class="text-2xl font-semibold mb-4 text-gray-800">Futures Markets</h2>
+  {% if futures %}
+  <ul class="space-y-2">
+    {% for future in futures %}
+    <li class="p-2 border-b">
+      <strong>{{ future.Title }}</strong>: {{ future.Odds }}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="text-gray-700">No futures markets available for the selected season.</p>
+  {% endif %}
+</div>
+{% endblock %}

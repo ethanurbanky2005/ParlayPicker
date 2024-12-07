@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-5xl mx-auto p-6 bg-white shadow rounded mt-10">
+    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Injured Players</h2>
+    {% if injuries %}
+    <table class="w-full mt-4 table-auto">
+        <thead class="bg-gray-200">
+        <tr>
+            <th class="text-left p-2">Player</th>
+            <th class="text-left p-2">Team</th>
+            <th class="text-left p-2">Position</th>
+            <th class="text-left p-2">Injury</th>
+            <th class="text-left p-2">Status</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for player in injuries %}
+        <tr class="border-b hover:bg-gray-100">
+            <td class="p-2">{{ player.FirstName }} {{ player.LastName }}</td>
+            <td class="p-2">{{ player.Team }}</td>
+            <td class="p-2">{{ player.Position }}</td>
+            <td class="p-2">{{ player.Injury }}</td>
+            <td class="p-2">{{ player.Status }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-gray-700">No injured players currently.</p>
+    {% endif %}
+</div>
+{% endblock %}

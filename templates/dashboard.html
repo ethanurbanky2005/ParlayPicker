@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto p-6 bg-white shadow rounded mt-10">
+  <h2 class="text-2xl font-semibold mb-4 text-gray-800">Dashboard</h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="p-4 bg-blue-100 rounded">
+      <h3 class="text-lg font-medium text-blue-800">Total Bets</h3>
+      <p class="text-2xl font-bold">{{ stats.total_bets }}</p>
+    </div>
+    <div class="p-4 bg-green-100 rounded">
+      <h3 class="text-lg font-medium text-green-800">Wins</h3>
+      <p class="text-2xl font-bold">{{ stats.wins }}</p>
+    </div>
+    <div class="p-4 bg-red-100 rounded">
+      <h3 class="text-lg font-medium text-red-800">Losses</h3>
+      <p class="text-2xl font-bold">{{ stats.losses }}</p>
+    </div>
+    <div class="p-4 bg-yellow-100 rounded">
+      <h3 class="text-lg font-medium text-yellow-800">Pending</h3>
+      <p class="text-2xl font-bold">{{ stats.pending }}</p>
+    </div>
+    <div class="p-4 bg-purple-100 rounded">
+      <h3 class="text-lg font-medium text-purple-800">Total Stake ($)</h3>
+      <p class="text-2xl font-bold">{{ stats.total_stake }}</p>
+    </div>
+    <div class="p-4 bg-indigo-100 rounded">
+      <h3 class="text-lg font-medium text-indigo-800">Total Return ($)</h3>
+      <p class="text-2xl font-bold">{{ stats.total_return }}</p>
+    </div>
+    <div class="p-4 bg-gray-100 rounded col-span-1 md:col-span-2">
+      <h3 class="text-lg font-medium text-gray-800">Return on Investment (ROI)</h3>
+      <p class="text-2xl font-bold">{{ stats.roi }}%</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

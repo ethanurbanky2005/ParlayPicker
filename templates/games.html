@@ -1,0 +1,33 @@
+<!-- templates/games.html -->
+
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-5xl mx-auto p-6 bg-white shadow rounded mt-10">
+  <h2 class="text-2xl font-semibold">Predicted Outcomes</h2>
+  <form method="POST" action="{{ url_for('parlay') }}">
+    <table class="w-full mt-4 table-auto">
+      <thead class="bg-gray-200">
+      <tr>
+        <th class="text-left p-2">Matchup</th>
+        <th class="text-left p-2">Pick</th>
+        <th class="text-left p-2">Confidence</th>
+        <th class="text-left p-2">Select</th>
+      </tr>
+      </thead>
+      <tbody>
+      {% for game in games %}
+      <tr class="border-b hover:bg-gray-100">
+        <td class="p-2">{{ game.AwayTeam }} @ {{ game.HomeTeam }}</td>
+        <td class="p-2">{{ game.recommended_pick }}</td>
+        <td class="p-2">{{ game.confidence }}</td>
+        <td class="p-2">
+          <input type="checkbox" name="selected_games" value="{{ game.GameId }}" class="form-checkbox h-4 w-4 text-blue-600">
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <button type="submit" class="mt-6 px-4 py-2 bg-green-600 text-white rounded font-semibold hover:bg-green-700">Build Parlay</button>
+  </form>
+</div>
+{% endblock %}

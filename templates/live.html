@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto mt-10 p-6 bg-white shadow rounded">
+  <h2 class="text-2xl font-semibold mb-4 text-gray-800">Live Odds & Updates</h2>
+  {% if odds %}
+  <ul class="space-y-2">
+    {% for change in odds %}
+    <li class="p-2 border-b">
+      <strong>{{ change.game }}</strong>: Spread moved from {{ change.old_spread }} to {{ change.new_spread }}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="text-gray-700">No line movements detected for the current week.</p>
+  {% endif %}
+</div>
+{% endblock %}
