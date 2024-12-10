@@ -1,3 +1,4 @@
+# Existing Dependencies
 Flask==2.3.2
 requests==2.31.0
 python-dotenv==1.0.1
@@ -8,4 +9,22 @@ Flask-Login==0.6.3
 Flask-WTF==1.1.1
 Flask-SQLAlchemy==3.0.5
 Werkzeug==2.3.3
-email_validator
+email_validator==1.3.1
+beautifulsoup4==4.12.2
+cfbd==4.5.2
+tqdm==4.66.1
+PyYAML==6.0
+
+# Additional Dependencies for Multi-class Deep Learning
+scikit-learn==1.2.2
+matplotlib==3.7.1
+scipy==1.11.2
+tensorflow==2.12.0
+keras-tuner==1.1.2
+colorama==0.4.6
+joblib==1.3.2
+fitter==0.7.4
+statsmodels==0.15.0
+pmdarima==1.8.3
+umap-learn==0.6.2
+psutil==5.9.5

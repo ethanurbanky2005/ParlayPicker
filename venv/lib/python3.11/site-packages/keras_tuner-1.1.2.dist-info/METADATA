@@ -1,0 +1,39 @@
+Metadata-Version: 2.1
+Name: keras-tuner
+Version: 1.1.2
+Summary: Hypertuner for Keras
+Home-page: https://github.com/keras-team/keras-tuner
+Author: The KerasTuner authors
+Author-email: kerastuner@google.com
+License: Apache License 2.0
+Platform: UNKNOWN
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Operating System :: Unix
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: MacOS
+Classifier: Intended Audience :: Science/Research
+Classifier: Topic :: Scientific/Engineering
+Classifier: Topic :: Software Development
+License-File: LICENSE
+License-File: AUTHORS
+Requires-Dist: packaging
+Requires-Dist: numpy
+Requires-Dist: requests
+Requires-Dist: tensorboard
+Requires-Dist: ipython
+Requires-Dist: kt-legacy
+Provides-Extra: tests
+Requires-Dist: black ; extra == 'tests'
+Requires-Dist: flake8 ; extra == 'tests'
+Requires-Dist: isort ; extra == 'tests'
+Requires-Dist: pandas ; extra == 'tests'
+Requires-Dist: portpicker ; extra == 'tests'
+Requires-Dist: pytest ; extra == 'tests'
+Requires-Dist: pytest-cov ; extra == 'tests'
+Requires-Dist: pytest-xdist ; extra == 'tests'
+Requires-Dist: scikit-learn ; extra == 'tests'
+Requires-Dist: scipy ; extra == 'tests'
+
+UNKNOWN
+

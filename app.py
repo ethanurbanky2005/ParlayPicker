@@ -4,9 +4,10 @@ from dotenv import load_dotenv
 import os
 from datetime import datetime
 
+# Load environment variables from .env file
 load_dotenv()
 
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, Blueprint
 from flask_login import (
     LoginManager,
     UserMixin,
@@ -17,6 +18,8 @@ from flask_login import (
 )
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from forms import RegistrationForm, LoginForm
 from werkzeug.security import generate_password_hash, check_password_hash
 from logic.data_fetch import (
@@ -31,7 +34,12 @@ from logic.parlay import build_optimal_parlay
 from logic.risk_management import calculate_stakes
 from logic.odds_analysis import analyze_line_movement
 import json
-import requests  # Ensure requests is imported for futures route
+import requests
+import logging
+
+# Initialize logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__, instance_relative_config=True)
 
@@ -39,8 +47,8 @@ app = Flask(__name__, instance_relative_config=True)
 # Configuration
 # ------------------------------
 app.config.update(
-    SECRET_KEY=os.getenv("SECRET_KEY", "default_secret_key"),  # Fallback for development
-    SQLALCHEMY_DATABASE_URI="sqlite:///parlay.db",
+    SECRET_KEY=os.getenv("SECRET_KEY", "default_secret_key"),  # Use environment variable in production
+    SQLALCHEMY_DATABASE_URI="sqlite:///parlay.db",  # Consider using PostgreSQL for production
     SQLALCHEMY_TRACK_MODIFICATIONS=False,
 )
 
@@ -56,7 +64,14 @@ migrate = Migrate(app, db)
 # Flask-Login setup
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = "login"  # Redirect to login page if not authenticated
+login_manager.login_view = "auth.login"  # Updated to Blueprint
+
+# Flask-Limiter setup for rate limiting
+limiter = Limiter(
+    app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"]
+)
 
 # ------------------------------
 # Database Models
@@ -66,17 +81,13 @@ class User(UserMixin, db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
-    email = db.Column(db.String(150), nullable=False)  # Remove unique=True here
+    email = db.Column(db.String(150), unique=True, nullable=False)
     password_hash = db.Column(db.String(150), nullable=False)
     bets = db.relationship("Bet", backref="user", lazy=True)
 
-    __table_args__ = (
-        db.UniqueConstraint('email', name='uq_user_email'),  # Named unique constraint
-    )
-
 class Bet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    parlay = db.Column(db.String(500), nullable=False)  # JSON string
+    parlay = db.Column(db.String(1000), nullable=False)  # JSON string
     stake = db.Column(db.Float, nullable=False)
     outcome = db.Column(db.String(50), nullable=True)  # 'Win', 'Loss', 'Pending'
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
@@ -96,24 +107,12 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 # ------------------------------
-# Context Processor
+# Blueprints Setup
 # ------------------------------
-@app.context_processor
-def inject_now():
-    return {"now": datetime.utcnow()}
+auth_bp = Blueprint('auth', __name__, template_folder='templates')
 
-# ------------------------------
-# Routes
-# ------------------------------
-
-@app.route('/', methods=['GET'])
-def index():
-    """
-    Home page of the application.
-    """
-    return render_template("index.html")
-
-@app.route("/register", methods=["GET", "POST"])
+@auth_bp.route("/register", methods=["GET", "POST"])
+@limiter.limit("10 per hour")
 def register():
     """
     User registration route.
@@ -124,30 +123,25 @@ def register():
         email = form.email.data
         password = form.password.data
 
-        # Check if username already exists
-        existing_user = User.query.filter_by(username=username).first()
+        # Check if username or email already exists
+        existing_user = User.query.filter((User.username == username) | (User.email == email)).first()
         if existing_user:
-            flash("Username already exists. Please choose a different one.", "error")
-            return redirect(url_for("register"))
+            flash("Username or email already exists. Please choose a different one.", "error")
+            return redirect(url_for("auth.register"))
 
-        # Check if email already exists
-        existing_email = User.query.filter_by(email=email).first()
-        if existing_email:
-            flash("Email already registered. Please use a different one.", "error")
-            return redirect(url_for("register"))
-
-        # Create new user
+        # Create new user with hashed password
         password_hash = generate_password_hash(password)
         new_user = User(username=username, email=email, password_hash=password_hash)
         db.session.add(new_user)
         db.session.commit()
 
         flash("Registration successful. Please log in.", "success")
-        return redirect(url_for("login"))
+        return redirect(url_for("auth.login"))
 
     return render_template("register.html", form=form)
 
-@app.route("/login", methods=["GET", "POST"])
+@auth_bp.route("/login", methods=["GET", "POST"])
+@limiter.limit("15 per hour")
 def login():
     """
     User login route.
@@ -168,7 +162,7 @@ def login():
 
     return render_template("login.html", form=form)
 
-@app.route("/logout")
+@auth_bp.route("/logout")
 @login_required
 def logout():
     """
@@ -177,6 +171,37 @@ def logout():
     logout_user()
     flash("You have been logged out.", "info")
     return redirect(url_for("index"))
+
+app.register_blueprint(auth_bp, url_prefix="/auth")
+
+# ------------------------------
+# Context Processor
+# ------------------------------
+@app.context_processor
+def inject_now():
+    return {"now": datetime.utcnow()}
+
+# ------------------------------
+# Custom Error Handlers
+# ------------------------------
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template("404.html"), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    return render_template("500.html"), 500
+
+# ------------------------------
+# Routes
+# ------------------------------
+
+@app.route('/', methods=['GET'])
+def index():
+    """
+    Home page of the application.
+    """
+    return render_template("index.html")
 
 @app.route("/games", methods=["GET", "POST"])
 @login_required
@@ -192,8 +217,9 @@ def games():
             return redirect(url_for("games"))
         try:
             week = int(week)
+            season = int(season)
         except ValueError:
-            flash("Week must be an integer.", "error")
+            flash("Season and week must be integers.", "error")
             return redirect(url_for("games"))
 
         # Fetch games with odds
@@ -233,8 +259,9 @@ def parlay():
         return redirect(url_for("games"))
     try:
         week = int(week)
+        season = int(season)
     except ValueError:
-        flash("Week must be an integer.", "error")
+        flash("Season and week must be integers.", "error")
         return redirect(url_for("games"))
 
     # Fetch detailed data for selected games
@@ -255,7 +282,11 @@ def parlay():
         all_player_props.extend(props)
 
     # Build parlay
-    parlay = build_optimal_parlay(selected_games, games_with_predictions, all_player_props)
+    try:
+        parlay = build_optimal_parlay(selected_games, games_with_predictions, all_player_props)
+    except Exception as e:
+        flash(f"Error building parlay: {e}", "error")
+        return redirect(url_for("games"))
 
     # Calculate stake
     stake = calculate_stakes(parlay)
@@ -277,8 +308,8 @@ def live_updates():
     """
     # Example: Fetch live odds for the current week
     # In a real app, determine the current week dynamically
-    season = "2024"
-    week = "15"  # Assuming current week is 15
+    season = datetime.utcnow().year
+    week = determine_current_week(season)  # Implement this function based on your criteria
     live_odds = analyze_line_movement(season, week)
     return render_template("live.html", odds=live_odds)
 
@@ -289,17 +320,14 @@ def futures():
     Route to display futures markets.
     """
     # Fetch futures markets from SportsDataIO
-    season = "2024"
+    season = datetime.utcnow().year
     futures_url = f"https://api.sportsdata.io/v3/cfb/odds/json/BettingFuturesBySeason/{season}"
     try:
         futures_resp = requests.get(futures_url, params={"key": os.getenv("SDIO_API_KEY")}, timeout=10)
-        logger.debug(f"GET {futures_resp.url} - Status Code: {futures_resp.status_code}")
-        if futures_resp.status_code != 200:
-            flash("Error fetching futures markets.", "error")
-            futures_data = []
-        else:
-            futures_data = futures_resp.json()
-    except requests.exceptions.RequestException as e:
+        futures_resp.raise_for_status()
+        futures_data = futures_resp.json()
+        logger.info(f"Fetched {len(futures_data)} futures markets for Season {season}.")
+    except requests.RequestException as e:
         logger.error(f"Request exception while fetching futures markets: {e}")
         flash("Error fetching futures markets.", "error")
         futures_data = []
@@ -347,7 +375,7 @@ def dashboard():
     pending = len([bet for bet in user_bets if bet.outcome == "Pending"])
     total_stake = sum(bet.stake for bet in user_bets)
     total_return = sum(
-        bet.stake * (1 + float(json.loads(bet.parlay)[0]["odds"].replace('-', '')) / 100)
+        bet.stake * calculate_decimal_odds(json.loads(bet.parlay)[0]["odds"])
         for bet in user_bets
         if bet.outcome == "Win"
     )
@@ -358,12 +386,49 @@ def dashboard():
         "wins": wins,
         "losses": losses,
         "pending": pending,
-        "total_stake": total_stake,
-        "total_return": total_return,
+        "total_stake": round(total_stake, 2),
+        "total_return": round(total_return, 2),
         "roi": round(roi, 2),
     }
 
     return render_template("dashboard.html", stats=stats)
+
+def determine_current_week(season: int) -> int:
+    """
+    Determine the current week based on the date and season.
+
+    Parameters:
+        season (int): The season year.
+
+    Returns:
+        int: Current week number.
+    """
+    # Placeholder implementation. Replace with actual logic based on current date.
+    # For example, map dates to weeks.
+    current_date = datetime.utcnow().date()
+    season_start = datetime(season, 8, 1).date()  # Example start date
+    week_number = ((current_date - season_start).days // 7) + 1
+    return max(1, min(20, week_number))  # Ensure week is between 1 and 20
+
+def calculate_decimal_odds(american_odds: str) -> float:
+    """
+    Convert American odds string to decimal odds.
+
+    Parameters:
+        american_odds (str): American odds (e.g., "-110", "120").
+
+    Returns:
+        float: Decimal odds.
+    """
+    try:
+        odds = int(american_odds)
+        if odds > 0:
+            return 1 + (odds / 100)
+        else:
+            return 1 + (100 / abs(odds))
+    except ValueError:
+        logger.warning(f"Invalid odds format: {american_odds}. Defaulting to 1.0")
+        return 1.0
 
 # ------------------------------
 # Run the Application
